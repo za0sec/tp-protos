@@ -1,0 +1,33 @@
+# Directorios generados
+build/
+bin/
+
+# Archivos objeto
+*.o
+*.obj
+
+# Ejecutables
+socks5d
+socks5_client
+
+# Archivos de debug
+*.dSYM/
+core
+core.*
+vgcore.*
+
+# Logs de pruebas
+*.log
+
+# Editor/IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Archivos temporales
+*.tmp
+*.bak
+
