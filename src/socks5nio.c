@@ -245,7 +245,8 @@ struct socks5 {
 // POOL DE CONEXIONES
 ////////////////////////////////////////////////////////////////////////////////
 
-static const unsigned max_pool = 50;
+/** Pool máximo de conexiones reutilizables - aumentado para soportar 500+ conexiones */
+static const unsigned max_pool = 500;
 static unsigned pool_size = 0;
 static struct socks5 *pool = NULL;
 

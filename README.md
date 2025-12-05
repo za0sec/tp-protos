@@ -267,6 +267,55 @@ Si el dominio resuelve a múltiples direcciones IP y la primera falla, el servid
 | `args.c` | Parseo de argumentos |
 | `netutils.c` | Utilidades de red |
 
+## Pruebas
+
+### Prueba integral básica
+
+```bash
+./test_integral.sh
+```
+
+Esta prueba verifica:
+- Compilación del proyecto
+- Funcionamiento del servidor SOCKS5
+- Gestión de usuarios en runtime
+- Conectividad a través del proxy
+- Sistema de métricas
+- Logs de acceso
+
+### Prueba de 500 conexiones simultáneas
+
+```bash
+./test_conexiones_500.sh
+```
+
+Verifica que el servidor cumpla con el requisito del enunciado de soportar **al menos 500 conexiones simultáneas**. Utiliza un servidor HTTP local para eliminar variables de red externas.
+
+### Pruebas de stress completas
+
+```bash
+./test_stress.sh
+```
+
+Las pruebas de stress evalúan:
+- Máxima cantidad de conexiones simultáneas (hasta 600)
+- Degradación del throughput bajo carga
+- Latencia del proxy
+- Estabilidad bajo carga sostenida (30 segundos)
+
+Los resultados detallados se guardan en:
+- `stress_results.txt` - Resultados en texto plano
+- `PRUEBAS_STRESS.md` - Informe completo con análisis
+
+#### Resultados de las pruebas de stress
+
+| Métrica                    | Valor              |
+|----------------------------|--------------------|
+| Conexiones concurrentes    | **500+ (97%)**     |
+| Throughput máximo          | ~2 MB/s agregado   |
+| Latencia promedio          | 1 ms               |
+| Conexiones/segundo         | ~106               |
+
 ## Notas
 
 Las librerías `buffer`, `selector` y `stm` fueron provistas por la cátedra. Los archivos originales están en `doc/patches/`.

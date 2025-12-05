@@ -60,9 +60,9 @@ struct monitoring_conn {
     struct monitoring_conn *next;
 };
 
-// Pool simple
+// Pool simple - aumentado para mayor concurrencia
 static struct monitoring_conn *pool = NULL;
-static const unsigned max_pool = 10;
+static const unsigned max_pool = 50;
 static unsigned pool_size = 0;
 
 static struct monitoring_conn *
