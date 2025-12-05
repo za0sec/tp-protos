@@ -1,0 +1,107 @@
+Network Working Group                                          Grupo 20
+Request for Comments: 1                               ITBA Protocolos
+Category: Informational                               Diciembre 2025
+
+             Protocolo de Monitoreo y Configuración (M.C.P.)
+
+Status of this Memo
+
+   This memo provides information for the Internet community.  It does
+   not specify an Internet standard of any kind.  Distribution of this
+   memo is unlimited.
+
+Abstract
+
+   Este documento define el Protocolo de Monitoreo y Configuración
+   (MCP), un protocolo binario ligero diseñado para administrar
+   servidores proxy SOCKSv5. Permite la recolección de métricas en
+   tiempo real y la gestión de usuarios sin interrumpir el servicio.
+
+1. Introducción
+
+   El servidor SOCKSv5 requiere un mecanismo fuera de banda (OOB) para
+   que los administradores puedan consultar el estado del servicio y
+   modificar la configuración de autenticación. MCP corre sobre TCP,
+   generalmente en el puerto 8080.
+
+2. Formato del Mensaje
+
+   Todos los enteros de más de un byte se transmiten en Network Byte
+   Order (Big Endian). El protocolo es de tipo Petición-Respuesta.
+
+      +------+------+----------+======================+
+      | VER  | CMD  |   LEN    |       PAYLOAD        |
+      +------+------+----------+======================+
+      |  1   |  1   |    2     |      Variable        |
+      +------+------+----------+======================+
+
+   VER: Versión del protocolo. Actualmente 0x01.
+   CMD: Identificador del comando (ver sección 3). En la respuesta,
+        este campo indica el STATUS (ver sección 4).
+   LEN: Longitud del PAYLOAD en bytes (uint16).
+   PAYLOAD: Datos variables dependientes del comando.
+
+3. Comandos (Requests)
+
+   3.1. GET_METRICS (0x00)
+        Obtiene estadísticas del servidor.
+        Payload: Vacío (LEN = 0).
+
+   3.2. LIST_USERS (0x01)
+        Obtiene la lista de usuarios configurados.
+        Payload: Vacío (LEN = 0).
+
+   3.3. ADD_USER (0x02)
+        Agrega un nuevo usuario para autenticación SOCKS.
+        Payload Format:
+        +------+----------+------+----------+
+        | ULEN | USERNAME | PLEN | PASSWORD |
+        +------+----------+------+----------+
+        ULEN: Longitud del usuario (1 byte).
+        PLEN: Longitud del password (1 byte).
+
+   3.4. REMOVE_USER (0x03)
+        Elimina un usuario existente.
+        Payload Format:
+        +------+----------+
+        | ULEN | USERNAME |
+        +------+----------+
+
+   3.5. TOGGLE_DISECTOR (0x04)
+        Activa o desactiva el sniffer de contraseñas.
+        Payload: Vacío.
+
+4. Estados de Respuesta (Status)
+
+   El campo CMD del header de respuesta se utiliza como STATUS:
+   0x00: OK (Éxito)
+   0x01: ERROR (Error genérico)
+   0x02: CMD_NOT_SUPPORTED
+   0x03: USER_NOT_FOUND
+   0x04: USER_EXISTS
+   0x05: USER_LIMIT_REACHED
+
+5. Formatos de Respuesta
+
+   5.1. Respuesta a GET_METRICS
+        Payload contiene 6 enteros de 64 bits (48 bytes total):
+        1. Conexiones Históricas
+        2. Conexiones Concurrentes
+        3. Bytes Transferidos
+        4. Conexiones Exitosas
+        5. Conexiones Fallidas
+        6. Bytes de Clientes
+
+   5.2. Respuesta a LIST_USERS
+        Payload Format:
+        +-------+----------+----------+
+        | COUNT |  USER 1  |  USER N  |
+        +-------+----------+----------+
+        COUNT: Cantidad de usuarios (1 byte).
+        USER N: [ULEN (1 byte) + USERNAME string]
+
+6. Consideraciones de Seguridad
+
+   Este protocolo no implementa cifrado ni autenticación. Se recomienda
+   que el socket de administración escuche únicamente en la interfaz
+   de loopback (127.0.0.1) o en una red de administración segura.
