@@ -677,9 +677,12 @@ request_start_dns_resolution(struct selector_key *key) {
     q->socks5    = s;
     strncpy(q->host, d->request.dest_addr.fqdn, sizeof(q->host) - 1);
     
+    s->references++;
+    
     pthread_t tid;
     if(pthread_create(&tid, NULL, dns_resolve_thread, q) != 0) {
         free(q);
+        s->references--;
         return ERROR;
     }
     pthread_detach(tid);
@@ -892,7 +895,11 @@ static unsigned
 request_resolving_done(struct selector_key *key) {
     struct socks5 *s = ATTACHMENT(key);
     struct request_st *d = &s->client.request;
-    
+
+    if(s->references > 1) {
+        s->references--;
+    }
+
     if(s->origin_resolution == NULL) {
         d->status = socks_status_host_unreachable;
         selector_set_interest_key(key, OP_WRITE);
