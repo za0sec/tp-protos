@@ -409,7 +409,7 @@ monitoring_read(struct selector_key *key) {
         c->state = MON_ERROR;
         selector_unregister_fd(key->s, c->fd);
         close(c->fd);
-        monitoring_free(c);
+        //monitoring_free(c);
         return;
     }
     
@@ -430,7 +430,7 @@ monitoring_read(struct selector_key *key) {
                 c->state = MON_ERROR;
                 selector_unregister_fd(key->s, c->fd);
                 close(c->fd);
-                monitoring_free(c);
+                //monitoring_free(c);
                 return;
             }
             
@@ -471,7 +471,7 @@ monitoring_write(struct selector_key *key) {
         c->state = MON_ERROR;
         selector_unregister_fd(key->s, c->fd);
         close(c->fd);
-        monitoring_free(c);
+        //monitoring_free(c);
         return;
     }
     
