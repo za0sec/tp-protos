@@ -1,0 +1,192 @@
+Network Working Group                                          Grupo 20
+Request for Comments: 1                                 ITBA Protocolos
+Category: Informational                                  Diciembre 2025
+
+             Protocolo de Monitoreo y Configuración (M.C.P.)
+
+Status of this Memo
+
+   This memo provides information for the Internet community.  It does
+   not specify an Internet standard of any kind.  Distribution of this
+   memo is unlimited.
+
+Abstract
+
+   Este documento define el Protocolo de Monitoreo y Configuración
+   (MCP), un protocolo binario ligero diseñado para la administración
+   remota del servidor proxy SOCKSv5. El protocolo permite la
+   recolección de métricas de rendimiento en tiempo real, así como la
+   gestión dinámica de usuarios y parámetros de configuración sin
+   necesidad de reiniciar el servicio.
+
+Table of Contents
+
+   1.  Introducción . . . . . . . . . . . . . . . . . . . . . . . . . 2
+   2.  Transporte . . . . . . . . . . . . . . . . . . . . . . . . . . 2
+   3.  Estructura del Mensaje . . . . . . . . . . . . . . . . . . . . 2
+   4.  Comandos . . . . . . . . . . . . . . . . . . . . . . . . . . . 3
+   5.  Códigos de Estado  . . . . . . . . . . . . . . . . . . . . . . 5
+   6.  Consideraciones de Seguridad . . . . . . . . . . . . . . . . . 5
+
+1.  Introducción
+
+   El servidor SOCKSv5 requiere un mecanismo "fuera de banda" (Out-of-
+   Band) para que los administradores del sistema puedan auditar el
+   funcionamiento y modificar credenciales. MCP (Monitoring &
+   Configuration Protocol) satisface esta necesidad mediante un diseño
+   simple, síncrono y orientado a mensajes.
+
+2.  Transporte
+
+   MCP utiliza TCP como protocolo de capa de transporte para garantizar
+   la entrega confiable de los comandos de administración.
+   
+   Puerto por defecto: 8080 (decimal).
+   
+   El servidor actúa de forma pasiva escuchando conexiones. El cliente
+   inicia la conexión, envía un comando, espera la respuesta y luego
+   el servidor puede cerrar la conexión o mantenerla para comandos
+   subsiguientes (según la implementación del cliente).
+
+3.  Estructura del Mensaje
+
+   Todos los valores numéricos de múltiples bytes (multibyte) DEBEN ser
+   transmitidos en orden de bytes de red (Network Byte Order / Big
+   Endian).
+
+   Tanto las Peticiones (Requests) como las Respuestas (Responses)
+   comparten una cabecera común de 4 bytes.
+
+      +------+------+----------+======================+
+      | VER  | CMD  |   LEN    |       PAYLOAD        |
+      +------+------+----------+======================+
+      |  1   |  1   |    2     |      Variable        |
+      +------+------+----------+======================+
+
+   Descripción de campos:
+
+   VER (1 byte): Versión del protocolo.
+       Valor actual: 0x01.
+
+   CMD (1 byte): 
+       En Petición: Identificador del comando a ejecutar (ver Sec 4).
+       En Respuesta: Código de Estado / Status (ver Sec 5).
+
+   LEN (2 bytes): 
+       Longitud del campo PAYLOAD en bytes (entero sin signo).
+       Si no hay datos, este valor es 0x0000.
+
+   PAYLOAD (Variable): 
+       Datos específicos del comando o de la respuesta.
+
+4.  Comandos
+
+   A continuación se detallan los comandos soportados y el formato de
+   sus respectivos payloads.
+
+   4.1. GET_METRICS (CMD: 0x00)
+   
+      Obtiene estadísticas vitales del servidor.
+      
+      Request Payload: Vacío (LEN = 0).
+      
+      Response Payload: 48 bytes conteniendo 6 valores de 64 bits
+      (uint64_t) en el siguiente orden:
+      
+      1. Conexiones Históricas (Total aceptadas desde el inicio).
+      2. Conexiones Concurrentes (Activas en este momento).
+      3. Bytes Transferidos (Total global: enviados + recibidos).
+      4. Conexiones Exitosas (Handshake SOCKS completado).
+      5. Conexiones Fallidas.
+      6. Bytes de Clientes (Total E/S exclusivo de sockets cliente).
+
+   4.2. LIST_USERS (CMD: 0x01)
+   
+      Obtiene la lista de usuarios registrados para autenticación.
+      
+      Request Payload: Vacío (LEN = 0).
+      
+      Response Payload:
+      +-------+=======================+
+      | COUNT |  LISTA DE USUARIOS... |
+      +-------+=======================+
+      
+      COUNT (1 byte): Número total de usuarios devueltos.
+      
+      Cada usuario en la lista sigue el formato:
+      [ ULEN (1 byte) | USERNAME (ULEN bytes) ]
+
+   4.3. ADD_USER (CMD: 0x02)
+   
+      Registra un nuevo usuario en el sistema.
+      
+      Request Payload:
+      +------+----------+------+----------+
+      | ULEN | USERNAME | PLEN | PASSWORD |
+      +------+----------+------+----------+
+      
+      ULEN (1 byte): Longitud del nombre de usuario.
+      USERNAME: Cadena de caracteres (no terminada en nulo).
+      PLEN (1 byte): Longitud de la contraseña.
+      PASSWORD: Cadena de caracteres.
+      
+      Response Payload: Vacío. El campo CMD del header indicará el
+      resultado (ej. OK, USER_EXISTS, USER_LIMIT).
+
+   4.4. REMOVE_USER (CMD: 0x03)
+   
+      Elimina un usuario existente.
+      
+      Request Payload:
+      +------+----------+
+      | ULEN | USERNAME |
+      +------+----------+
+      
+      Response Payload: Vacío. El campo CMD indicará el resultado.
+
+   4.5. TOGGLE_DISECTOR (CMD: 0x04)
+   
+      Activa o desactiva el análisis de tráfico (sniffer) para
+      protocolos como POP3.
+      
+      Request Payload: Vacío.
+      
+      Response Payload:
+      +-------+
+      | STATE |
+      +-------+
+      STATE (1 byte): 0x01 si quedó activado, 0x00 si quedó desactivado.
+
+5.  Códigos de Estado (Status)
+
+   En los mensajes de respuesta del servidor, el segundo byte (originalmente
+   CMD) se reutiliza para indicar el estado de la operación.
+
+   0x00: MONITORING_STATUS_OK
+         Operación exitosa.
+
+   0x01: MONITORING_STATUS_ERROR
+         Error interno o genérico.
+
+   0x02: MONITORING_STATUS_CMD_NOT_SUPPORTED
+         El comando solicitado no existe o no está implementado.
+
+   0x03: MONITORING_STATUS_USER_NOT_FOUND
+         Se intentó operar sobre un usuario inexistente.
+
+   0x04: MONITORING_STATUS_USER_EXISTS
+         Se intentó crear un usuario que ya existe.
+
+   0x05: MONITORING_STATUS_USER_LIMIT
+         Se alcanzó el límite máximo de usuarios concurrentes (MAX_USERS).
+
+6.  Consideraciones de Seguridad
+
+   El protocolo MCP transmite información sensible (nombres de usuario,
+   contraseñas y métricas) en texto plano sin cifrado.
+   
+   Se RECOMIENDA encarecidamente:
+   1. Configurar el servidor de monitoreo para escuchar únicamente en
+      la interfaz de loopback (127.0.0.1) utilizando el argumento -L.
+   2. Restringir el acceso al puerto de gestión mediante reglas de
+      firewall (iptables/nftables) si se expone a una red externa.
