@@ -69,6 +69,9 @@ trap cleanup EXIT
 # Iniciar servidor HTTP local para pruebas
 start_local_server() {
     print_header "Iniciando Servidor HTTP Local"
+    # Limpiar instancias anteriores
+    pkill -f "python3 -m http.server $LOCAL_SERVER_PORT" 2>/dev/null
+    sleep 1
     python3 -m http.server $LOCAL_SERVER_PORT --bind 127.0.0.1 > /dev/null 2>&1 &
     LOCAL_SERVER_PID=$!
     sleep 1
@@ -111,6 +114,10 @@ check_dependencies() {
 # Iniciar servidor
 start_server() {
     print_header "Iniciando Servidor SOCKSv5"
+    
+    # Limpiar instancias anteriores
+    pkill -f "socks5d" 2>/dev/null
+    sleep 1
     
     cd "$(dirname "$0")"
     

@@ -8,6 +8,10 @@ NC='\033[0m' # No Color
 
 echo -e "${BLUE}=== INICIO DE PRUEBA INTEGRAL ===${NC}"
 
+# 0. Limpiar procesos anteriores
+pkill -f socks5d 2>/dev/null
+sleep 1
+
 # 1. Compilación Limpia
 echo -e "\n${BLUE}[1/6] Compilando proyecto...${NC}"
 make clean > /dev/null

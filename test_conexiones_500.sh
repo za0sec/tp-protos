@@ -34,6 +34,11 @@ echo "║     Requisito: 'al menos 500 conexiones concurrentes'         ║"
 echo "╚═══════════════════════════════════════════════════════════════╝"
 echo -e "${NC}"
 
+# Limpiar procesos anteriores
+pkill -f socks5d 2>/dev/null
+pkill -f "python3 -m http.server $LOCAL_SERVER_PORT" 2>/dev/null
+sleep 1
+
 cd "$(dirname "$0")"
 
 # Compilar si es necesario
