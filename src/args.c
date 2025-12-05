@@ -37,8 +37,8 @@ user(char* s, struct users* user)
     {
         *p = 0;
         p++;
-        user->name = s;
-        user->pass = p;
+        user->name = strdup(s);
+        user->pass = strdup(p);
     }
 }
 
